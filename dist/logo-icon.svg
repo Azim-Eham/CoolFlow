@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <defs>
+    <linearGradient id="coolGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" />
+      <stop offset="100%" stop-color="#0284c7" />
+    </linearGradient>
+    <linearGradient id="warmGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fb923c" />
+      <stop offset="100%" stop-color="#f97316" />
+    </linearGradient>
+  </defs>
+  <!-- Outer cooling vortex arc -->
+  <path d="M50 10 A40 40 0 0 1 90 50 A40 40 0 0 1 50 90 A40 40 0 0 1 10 50" stroke="url(#coolGrad)" stroke-width="12" stroke-linecap="round" stroke-dasharray="160 40" />
+  <!-- Inner airflow spiral -->
+  <path d="M50 24 A26 26 0 0 1 76 50 A26 26 0 0 1 50 76" stroke="url(#warmGrad)" stroke-width="9" stroke-linecap="round" />
+  <!-- Center flow dot -->
+  <circle cx="50" cy="50" r="8" fill="#38bdf8" />
+</svg>
+
