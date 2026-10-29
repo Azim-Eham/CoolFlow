@@ -83,6 +83,10 @@ export const Hero: React.FC<HeroProps> = ({ onOpenQuote, onHeroStateChange }) =>
     const ctx = canvas.getContext('2d', { alpha: false });
     if (!ctx) return;
 
+    // High quality bicubic resampling for sharp rendering on mobile Retina and 4K displays
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+
     // Clamp index
     const clampedIndex = Math.max(0, Math.min(Math.round(index), TOTAL_FRAMES - 1));
     const img = imagesRef.current[clampedIndex] || imagesRef.current[0];
@@ -119,12 +123,13 @@ export const Hero: React.FC<HeroProps> = ({ onOpenQuote, onHeroStateChange }) =>
     if (!canvas) return;
 
     const handleResize = () => {
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      // Support up to 3x DPR for modern iPhone & Android Retina/OLED mobile viewports
+      const dpr = Math.min(window.devicePixelRatio || 1, 3);
       const w = window.innerWidth;
       const h = window.innerHeight;
 
-      canvas.width = w * dpr;
-      canvas.height = h * dpr;
+      canvas.width = Math.round(w * dpr);
+      canvas.height = Math.round(h * dpr);
 
       // Redraw current frame at new resolution
       drawFrame(currentFrameRef.current);
@@ -232,7 +237,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenQuote, onHeroStateChange }) =>
       }`}
     >
       {/* Pinned Sticky Stage */}
-      <div className="sticky top-0 left-0 w-full h-screen overflow-hidden flex items-center select-none">
+      <div className="sticky top-0 left-0 w-full h-screen h-[100dvh] overflow-hidden flex items-center select-none">
         
         {/* ================= LAYER 0: Canvas Frame Sequence Background ================= */}
         <div className="absolute inset-0 z-0 bg-[#070c18]">
@@ -255,11 +260,11 @@ export const Hero: React.FC<HeroProps> = ({ onOpenQuote, onHeroStateChange }) =>
 
               {/* Scrim Layers: Dark edge gradients that fade out smoothly when scrolling */}
               <div
-                className="absolute inset-0 bg-gradient-to-r from-[#070c18] via-[#070c18]/85 to-transparent w-full lg:w-3/5 pointer-events-none z-10 transition-opacity duration-300 ease-out"
+                className="absolute inset-0 bg-gradient-to-b from-[#070c18]/80 via-[#070c18]/30 to-[#070c18]/80 sm:bg-gradient-to-r sm:from-[#070c18] sm:via-[#070c18]/75 sm:to-transparent w-full lg:w-3/5 pointer-events-none z-10 transition-opacity duration-300 ease-out"
                 style={{ opacity: scrimOpacity }}
               />
               <div
-                className="absolute inset-0 bg-gradient-to-t from-[#070c18] via-transparent to-[#070c18]/60 pointer-events-none z-10 transition-opacity duration-300 ease-out"
+                className="absolute inset-0 bg-gradient-to-t from-[#070c18] via-transparent to-[#070c18]/50 pointer-events-none z-10 transition-opacity duration-300 ease-out"
                 style={{ opacity: scrimOpacity }}
               />
             </div>
