@@ -137,8 +137,9 @@ export const Hero: React.FC<HeroProps> = ({ onOpenQuote, onHeroStateChange }) =>
     const ctx = canvas.getContext('2d', { alpha: false });
     if (!ctx) return;
 
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
     ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = 'high';
+    ctx.imageSmoothingQuality = isMobile ? 'medium' : 'high';
 
     const clampedIndex = Math.max(0, Math.min(Math.round(index), TOTAL_FRAMES - 1));
     const img = imagesRef.current[clampedIndex] || imagesRef.current[0];
@@ -174,12 +175,20 @@ export const Hero: React.FC<HeroProps> = ({ onOpenQuote, onHeroStateChange }) =>
     if (!canvas) return;
 
     const handleResize = () => {
-      const dpr = Math.min(window.devicePixelRatio || 1, 3);
+      const isMobile = window.innerWidth < 768;
+      // Cap DPR to 1.5 on mobile to avoid 3M+ pixel canvas allocation and severe thermal throttling; 2 on desktop
+      const dpr = isMobile
+        ? Math.min(window.devicePixelRatio || 1, 1.5)
+        : Math.min(window.devicePixelRatio || 1, 2);
       const w = window.innerWidth;
       const h = window.innerHeight;
 
       canvas.width = Math.round(w * dpr);
       canvas.height = Math.round(h * dpr);
+
+      // Pin CSS dimensions explicitly to prevent browser-level canvas interpolation blur
+      canvas.style.width = `${w}px`;
+      canvas.style.height = `${h}px`;
 
       drawFrame(currentFrameRef.current);
     };
@@ -219,6 +228,8 @@ export const Hero: React.FC<HeroProps> = ({ onOpenQuote, onHeroStateChange }) =>
   useEffect(() => {
     if (viewMode !== 'video-scroll') return;
 
+    let ticking = false;
+
     const handleScroll = () => {
       const el = containerRef.current;
       if (!el) return;
@@ -232,12 +243,20 @@ export const Hero: React.FC<HeroProps> = ({ onOpenQuote, onHeroStateChange }) =>
       const rawProgress = -rect.top / totalScrollable;
       const p = Math.max(0, Math.min(rawProgress, 1));
 
-      setScrollProgress(p);
+      // Always update target frame immediately so the 60/120fps canvas loop scrubs with zero latency
       targetFrameRef.current = p * (TOTAL_FRAMES - 1);
 
-      // Inform parent if in pure video mode (progress > 0.08 and < 0.95)
-      const isPure = p > 0.08 && p < 0.95;
-      onHeroStateChange?.(isPure);
+      // Throttle React state updates via requestAnimationFrame to prevent 120Hz re-renders during mobile inertia scrolling
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          setScrollProgress(p);
+          // Inform parent if in pure video mode (progress > 0.08 and < 0.95)
+          const isPure = p > 0.08 && p < 0.95;
+          onHeroStateChange?.(isPure);
+          ticking = false;
+        });
+        ticking = true;
+      }
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
@@ -333,7 +352,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenQuote, onHeroStateChange }) =>
               {/* Video Canvas */}
               <canvas
                 ref={canvasRef}
-                className="absolute inset-0 w-full h-full object-cover will-change-transform"
+                className="absolute inset-0 w-full h-full block will-change-transform"
               />
 
               {/* Initial Landing Scrim (fades out as hero moves) */}
