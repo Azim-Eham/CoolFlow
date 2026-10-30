@@ -6,7 +6,6 @@ import {
   ShieldCheck,
   Award,
   Sun,
-  Wind,
   ChevronDown,
   SlidersHorizontal,
 } from 'lucide-react';
@@ -39,7 +38,7 @@ const MOTION_CHAPTERS: MotionChapter[] = [
       'Infrared micro-sensors detect radiant solar gain through the panoramic glass, spooling the inverter before indoor temperature shifts.',
     telemetry: '78°F AMBIENT • INVERTER AT 65% • ZERO DRAFTS',
     alignment: 'left',
-    range: [0.16, 0.24, 0.38, 0.44],
+    range: [0.14, 0.20, 0.40, 0.46],
   },
   {
     id: 2,
@@ -50,7 +49,7 @@ const MOTION_CHAPTERS: MotionChapter[] = [
       'Architectural linear ceiling slots glide cool laminar air across the upper plane via the Coandă effect — felt throughout, never heard.',
     telemetry: '18 dB ACOUSTICS • 0.15 M/S VELOCITY • MERV-16 PURIFIED',
     alignment: 'right',
-    range: [0.46, 0.54, 0.68, 0.74],
+    range: [0.44, 0.50, 0.72, 0.78],
   },
   {
     id: 3,
@@ -61,7 +60,7 @@ const MOTION_CHAPTERS: MotionChapter[] = [
       'The entire living space reaches pristine thermal balance. Low-vibration inverter compressors idle in ultra-efficient maintenance mode.',
     telemetry: '72°F BALANCED • AQI 12 PRISTINE • 24.5 SEER2 EFFICIENCY',
     alignment: 'left',
-    range: [0.76, 0.84, 0.94, 0.98],
+    range: [0.74, 0.80, 0.95, 0.99],
   },
 ];
 
@@ -246,38 +245,33 @@ export const Hero: React.FC<HeroProps> = ({ onOpenQuote, onHeroStateChange }) =>
     return () => window.removeEventListener('scroll', handleScroll);
   }, [viewMode, onHeroStateChange]);
 
-  // Motion Graphics Smooth Interpolation Helper
+  // Motion Graphics Smooth Interpolation Helper — 100% sharp text (no CSS blur that damages legibility)
   const getMotionStyles = (p: number, range: [number, number, number, number]) => {
     const [start, peakIn, peakOut, end] = range;
     if (p < start || p > end) {
       return {
         opacity: 0,
-        transform: 'translate3d(0, 24px, 0)',
-        filter: 'blur(8px)',
+        transform: 'translate3d(0, 20px, 0)',
         visible: false,
       };
     }
 
     let progress = 1;
     let translateY = 0;
-    let blurPx = 0;
 
     if (p < peakIn) {
       const t = (p - start) / (peakIn - start);
       progress = t * t * (3 - 2 * t); // Smooth Hermite curve
-      translateY = (1 - progress) * 28;
-      blurPx = (1 - progress) * 6;
+      translateY = (1 - progress) * 20;
     } else if (p > peakOut) {
       const t = (end - p) / (end - peakOut);
       progress = t * t * (3 - 2 * t);
-      translateY = (1 - progress) * -28;
-      blurPx = (1 - progress) * 6;
+      translateY = (1 - progress) * -20;
     }
 
     return {
       opacity: progress,
       transform: `translate3d(0, ${translateY}px, 0)`,
-      filter: blurPx > 0.1 ? `blur(${blurPx.toFixed(1)}px)` : 'none',
       visible: progress > 0.01,
     };
   };
@@ -296,17 +290,21 @@ export const Hero: React.FC<HeroProps> = ({ onOpenQuote, onHeroStateChange }) =>
     ? `translate3d(${exitEased * 40}px, ${-exitEased * 20}px, 0) scale(${1 - exitEased * 0.03})`
     : 'none';
 
-  // Scrims fade away gracefully
-  const scrimOpacity = viewMode === 'video-scroll' ? Math.max(0, 1 - exitEased * 1.2) : 1;
+  // Scrim for initial content
+  const initialScrimOpacity = viewMode === 'video-scroll' ? Math.max(0, 1 - exitEased * 1.2) : 1;
 
   // Temperature calculations
   const autoTemp = Math.round(78 - scrollProgress * 6);
   const currentTemp = manualTempOverride !== null ? manualTempOverride : autoTemp;
   const displayTemp = isFahrenheit ? currentTemp : Math.round(((currentTemp - 32) * 5) / 9);
 
-  // Active step index (0, 1, 2)
+  // Active step index (1, 2, 3)
   const activeStep =
     scrollProgress < 0.44 ? 1 : scrollProgress < 0.74 ? 2 : 3;
+
+  // Detect whether scroll storytelling text is currently on-screen
+  const isNarrativeActive =
+    viewMode === 'video-scroll' && scrollProgress >= 0.14 && scrollProgress <= 0.98;
 
   return (
     <div
@@ -338,12 +336,36 @@ export const Hero: React.FC<HeroProps> = ({ onOpenQuote, onHeroStateChange }) =>
                 className="absolute inset-0 w-full h-full object-cover will-change-transform"
               />
 
-              {/* Subtle filmic vignette to ensure text always has crisp contrast */}
+              {/* Initial Landing Scrim (fades out as hero moves) */}
               <div
-                className="absolute inset-0 bg-gradient-to-r from-[#070c18]/85 via-[#070c18]/30 to-transparent pointer-events-none z-10 transition-opacity duration-500"
-                style={{ opacity: scrimOpacity }}
+                className="absolute inset-0 bg-gradient-to-r from-[#070c18]/90 via-[#070c18]/40 to-transparent pointer-events-none z-10 transition-opacity duration-500"
+                style={{ opacity: initialScrimOpacity }}
               />
-              <div className="absolute inset-0 bg-radial-gradient from-transparent via-[#070c18]/20 to-[#070c18]/70 pointer-events-none z-10" />
+
+              {/* Cinema Scrim for Motion Storytelling: Ensures 100% razor-sharp text legibility against daylight windows */}
+              <div
+                className={`absolute inset-0 pointer-events-none z-10 transition-opacity duration-700 ease-out ${
+                  isNarrativeActive ? 'opacity-100' : 'opacity-0'
+                }`}
+              >
+                {/* Left side soft gradient for Chapter 1 & 3 */}
+                <div
+                  className={`absolute inset-y-0 left-0 w-full sm:w-2/3 bg-gradient-to-r from-[#050914]/90 via-[#050914]/55 to-transparent transition-opacity duration-500 ${
+                    activeStep === 1 || activeStep === 3 ? 'opacity-100' : 'opacity-0'
+                  }`}
+                />
+
+                {/* Right side soft gradient for Chapter 2 */}
+                <div
+                  className={`absolute inset-y-0 right-0 w-full sm:w-2/3 bg-gradient-to-l from-[#050914]/90 via-[#050914]/55 to-transparent transition-opacity duration-500 ${
+                    activeStep === 2 ? 'opacity-100' : 'opacity-0'
+                  }`}
+                />
+
+                {/* Subtle top & bottom edge vignette */}
+                <div className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-[#070c18]/80 to-transparent" />
+                <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-[#070c18]/90 to-transparent" />
+              </div>
             </div>
           ) : (
             // Static House & Van Scene
@@ -561,15 +583,17 @@ export const Hero: React.FC<HeroProps> = ({ onOpenQuote, onHeroStateChange }) =>
                 return (
                   <div
                     key={chapter.id}
-                    className={`w-full max-w-xl transition-all duration-150 ease-out ${
+                    className={`w-full max-w-xl transition-all duration-150 ease-out relative ${
                       isRightAligned ? 'ml-auto text-left sm:text-right' : 'mr-auto text-left'
                     }`}
                     style={{
                       opacity: styles.opacity,
                       transform: styles.transform,
-                      filter: styles.filter,
                     }}
                   >
+                    {/* Soft ambient dark radial backplate to ensure 100% crisp contrast over any video scene */}
+                    <div className="absolute -inset-10 bg-slate-950/60 rounded-3xl blur-3xl -z-10 pointer-events-none" />
+
                     {/* Motion Graphics Tag Line with Hairline Accent */}
                     <div
                       className={`flex items-center gap-3 mb-4 ${
@@ -577,43 +601,48 @@ export const Hero: React.FC<HeroProps> = ({ onOpenQuote, onHeroStateChange }) =>
                       }`}
                     >
                       {!isRightAligned && (
-                        <span className="w-8 sm:w-12 h-px bg-gradient-to-r from-cool-400 to-transparent" />
+                        <span className="w-8 sm:w-12 h-[2px] bg-cyan-400" />
                       )}
-                      <span className="font-mono text-xs sm:text-sm uppercase tracking-[0.25em] text-cool-300 font-medium">
+                      <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-950/80 border border-cyan-400/30 text-cyan-300 font-mono text-xs font-bold uppercase tracking-[0.2em] shadow-lg shadow-black/40">
+                        <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
                         {chapter.tag}
                       </span>
                       {isRightAligned && (
-                        <span className="hidden sm:inline-block w-8 sm:w-12 h-px bg-gradient-to-l from-cool-400 to-transparent" />
+                        <span className="hidden sm:inline-block w-8 sm:w-12 h-[2px] bg-cyan-400" />
                       )}
                     </div>
 
-                    {/* Editorial Large Kinetic Headline */}
-                    <h2 className="text-3xl sm:text-5xl lg:text-6xl font-light text-white tracking-tight leading-[1.1] drop-shadow-[0_4px_24px_rgba(0,0,0,0.8)]">
+                    {/* Editorial Large Kinetic Headline — High contrast, crisp weights */}
+                    <h2 className="text-3xl sm:text-5xl lg:text-6xl font-bold text-white tracking-tight leading-[1.14] drop-shadow-[0_2px_12px_rgba(0,0,0,0.95)] drop-shadow-[0_8px_32px_rgba(0,0,0,0.9)]">
                       {chapter.headline}{' '}
                       {chapter.headlineAccent && (
-                        <span className="block font-normal text-transparent bg-clip-text bg-gradient-to-r from-cool-300 via-sky-300 to-cyan-200">
+                        <span className="block font-semibold text-transparent bg-clip-text bg-gradient-to-r from-cool-300 via-sky-300 to-cyan-300">
                           {chapter.headlineAccent}
                         </span>
                       )}
                     </h2>
 
-                    {/* Poetic Description */}
+                    {/* High-legibility Description */}
                     <p
-                      className={`text-slate-200/90 text-sm sm:text-base font-light leading-relaxed mt-4 max-w-md drop-shadow-[0_2px_12px_rgba(0,0,0,0.8)] ${
+                      className={`text-slate-100 text-base sm:text-lg font-normal leading-relaxed mt-4 max-w-lg drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)] ${
                         isRightAligned ? 'sm:ml-auto' : ''
                       }`}
                     >
                       {chapter.description}
                     </p>
 
-                    {/* Minimalist Monospace Telemetry Stamp */}
+                    {/* High-Contrast Monospace Telemetry Stamp */}
                     <div
-                      className={`mt-6 pt-4 border-t border-white/10 flex items-center gap-2 font-mono text-[11px] sm:text-xs text-slate-300/80 tracking-wider uppercase ${
+                      className={`mt-6 pt-4 border-t border-white/20 flex items-center ${
                         isRightAligned ? 'justify-start sm:justify-end' : 'justify-start'
                       }`}
                     >
-                      <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping shrink-0" />
-                      <span>{chapter.telemetry}</span>
+                      <div className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-slate-950/80 border border-white/15 backdrop-blur-md shadow-lg shadow-black/50">
+                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+                        <span className="font-mono text-xs font-semibold text-slate-200 tracking-wider uppercase">
+                          {chapter.telemetry}
+                        </span>
+                      </div>
                     </div>
 
                     {/* Chapter 3 Clean Direct CTA */}
@@ -625,7 +654,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenQuote, onHeroStateChange }) =>
                       >
                         <button
                           onClick={onOpenQuote}
-                          className="px-6 py-3 rounded-full bg-white text-slate-950 font-medium text-sm flex items-center gap-2 hover:bg-slate-100 transition-transform hover:scale-[1.02] active:scale-[0.98] shadow-2xl"
+                          className="px-7 py-3.5 rounded-full bg-white hover:bg-slate-100 text-slate-950 font-bold text-base flex items-center gap-2 transition-transform hover:scale-[1.02] active:scale-[0.98] shadow-2xl shadow-black/60"
                         >
                           <span>Request Consultation</span>
                           <ArrowRight className="w-4 h-4" />
@@ -652,15 +681,15 @@ export const Hero: React.FC<HeroProps> = ({ onOpenQuote, onHeroStateChange }) =>
               return (
                 <div key={step} className="flex items-center gap-3">
                   <span
-                    className={`font-mono text-[10px] tracking-widest transition-colors duration-300 ${
-                      isActive ? 'text-cyan-300 font-semibold' : 'text-white/20'
+                    className={`font-mono text-xs tracking-widest transition-colors duration-300 ${
+                      isActive ? 'text-cyan-300 font-bold' : 'text-white/30'
                     }`}
                   >
                     0{step}
                   </span>
                   <div
-                    className={`h-7 w-[1.5px] transition-all duration-300 ${
-                      isActive ? 'bg-cyan-400 scale-y-110' : 'bg-white/15'
+                    className={`h-8 w-[2px] transition-all duration-300 ${
+                      isActive ? 'bg-cyan-400 scale-y-125 shadow-sm shadow-cyan-400' : 'bg-white/20'
                     }`}
                   />
                 </div>
@@ -669,24 +698,24 @@ export const Hero: React.FC<HeroProps> = ({ onOpenQuote, onHeroStateChange }) =>
           </div>
         )}
 
-        {/* ================= LAYER 4: Minimalist Bottom Telemetry Line ================= */}
+        {/* ================= LAYER 4: High-Legibility Bottom Telemetry Line ================= */}
         {viewMode === 'video-scroll' && (
           <div
-            className="absolute bottom-6 left-6 sm:left-10 right-6 sm:right-10 z-30 flex items-center justify-between text-[11px] font-mono text-slate-400/80 tracking-widest uppercase transition-opacity duration-500 pointer-events-none"
+            className="absolute bottom-6 left-6 sm:left-10 right-6 sm:right-10 z-30 flex items-center justify-between text-xs font-mono text-slate-300 tracking-widest uppercase transition-opacity duration-500 pointer-events-none drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)]"
             style={{
-              opacity: scrollProgress > 0.12 && scrollProgress < 0.96 ? 0.9 : 0,
+              opacity: scrollProgress > 0.12 && scrollProgress < 0.96 ? 1 : 0,
             }}
           >
-            <div className="flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
-              <span>CoolFlow Architectural System</span>
+            <div className="flex items-center gap-2 bg-slate-950/70 px-3 py-1 rounded-full border border-white/10 backdrop-blur-md">
+              <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+              <span className="font-semibold text-slate-200">CoolFlow Architectural System</span>
             </div>
 
-            <div className="flex items-center gap-6">
-              <span className="hidden sm:inline">
+            <div className="flex items-center gap-4 bg-slate-950/70 px-3.5 py-1 rounded-full border border-white/10 backdrop-blur-md">
+              <span className="hidden sm:inline text-slate-300">
                 Frame {Math.min(TOTAL_FRAMES, Math.round(scrollProgress * (TOTAL_FRAMES - 1)) + 1)} / {TOTAL_FRAMES}
               </span>
-              <span className="text-white font-medium">
+              <span className="text-cyan-300 font-bold">
                 {Math.round(scrollProgress * 100)}%
               </span>
             </div>
@@ -702,10 +731,10 @@ export const Hero: React.FC<HeroProps> = ({ onOpenQuote, onHeroStateChange }) =>
               transform: `translate3d(-50%, ${exitEased * 20}px, 0)`,
             }}
           >
-            <span className="text-[10px] font-mono tracking-[0.2em] uppercase text-cool-300/80">
+            <span className="text-[11px] font-mono tracking-[0.2em] uppercase text-cool-300 bg-slate-950/70 px-3 py-1 rounded-full border border-cool-500/30 backdrop-blur-md">
               Scroll to explore
             </span>
-            <ChevronDown className="w-3.5 h-3.5 text-cool-400/80 animate-bounce" />
+            <ChevronDown className="w-3.5 h-3.5 text-cool-400 animate-bounce" />
           </div>
         )}
 
